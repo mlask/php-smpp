@@ -1,11 +1,15 @@
 {
-  "name": "alexandr-mironov/php-smpp",
-  "description": "PHP SMPP client lib, fork of onlinecity/php-smpp",
+  "name": "mlask/php-smpp",
+  "description": "PHP SMPP client lib, fork of alexandr-mironov/php-smpp",
   "keywords": ["smpp", "sms", "texting", "gsm"],
-  "homepage": "https://github.com/alexandr-mironov/php-smpp",
+  "homepage": "https://github.com/mlask/php-smpp",
   "type": "library",
   "license": "LGPL-2.0-or-later",
   "authors": [
+    {
+      "name": "Marcin Laber",
+      "email": "marcin@laber.pl"
+    },
     {
       "name": "Alexandr Mironov",
       "email": "alex@hyptrex.com"
@@ -17,7 +21,7 @@
     }
   ],
   "require": {
-    "php": ">=5.4",
+    "php": ">=8.1",
     "ext-sockets": "*",
     "ext-mbstring": "*"
   },
