@@ -279,7 +279,7 @@ class Client
 	public function queryStatus($messageID, Address $source)
 	{
 		$pduBody = pack(
-			'a' . (strlen($messageID) + 1) . 'cca' . (strlen($source->value) + 1),
+			'a' . (strlen($messageID) + 1) . 'cca' . (strlen($source->value ?? '') + 1),
 			$messageID,
 			$source->ton,
 			$source->npi,
@@ -488,8 +488,8 @@ class Client
 
 		// Construct PDU with mandatory fields
 		$pdu = pack(
-			'a1cca' . (strlen($source->value) + 1)
-			. 'cca' . (strlen($destination->value) + 1)
+			'a1cca' . (strlen($source->value ?? '') + 1)
+			. 'cca' . (strlen($destination->value ?? '') + 1)
 			. 'ccc' . ($scheduleDeliveryTime ? 'a16x' : 'a1') . ($validityPeriod ? 'a16x' : 'a1')
 			. 'ccccca' . (strlen($short_message) + (self::$smsNullTerminateOctetStrings ? 1 : 0)),
 			self::$smsServiceType,
@@ -839,7 +839,7 @@ class Client
 	 */
 	protected function sendPDU(Pdu $pdu)
 	{
-		$length = strlen($pdu->body) + 16;
+		$length = strlen($pdu->body ?? '') + 16;
 		$header = pack("NNNN", $length, $pdu->id, $pdu->status, $pdu->sequence);
 		if ($this->debug) {
 			call_user_func($this->debugHandler, "Send PDU		 : $length bytes");
