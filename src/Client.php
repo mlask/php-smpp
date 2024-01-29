@@ -5,6 +5,7 @@ use Exception;
 use smpp\exceptions\SmppException;
 use smpp\exceptions\SocketTransportException;
 use smpp\transport\Socket;
+use smpp\transport\Stream;
 
 /**
  * Class for receiving or sending sms through SMPP protocol.
