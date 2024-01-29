@@ -1,7 +1,7 @@
 <?php
 namespace smpp\transport;
 
-use smpp\exceptions\SocketTransportException;
+use smpp\exceptions\SmppTransportException;
 
 /**
  * TCP Stream Socket Transport for use with multiple protocols.
@@ -150,48 +150,48 @@ class Stream
 	
 	/**
 	 * Sets the TLS mode.
-	 * Throws SocketTransportException is value could not be changed
-	 * @throws SocketTransportException
+	 * Throws SmppTransportException is value could not be changed
+	 * @throws SmppTransportException
 	 */
 	public function useTls (bool $tls): void
 	{
 		if (!$this->isOpen())
 			self::$useTls = $tls;
 		else
-			throw new SocketTransportException('Could not toggle TLS when connected');
+			throw new SmppTransportException('Could not toggle TLS when connected');
 	}
 	
 	/**
 	 * Sets the send timeout.
-	 * Throws SocketTransportException is value could not be changed
-	 * @throws SocketTransportException
+	 * Throws SmppTransportException is value could not be changed
+	 * @throws SmppTransportException
 	 */
 	public function setSendTimeout (int $timeout): void
 	{
 		if (!$this->isOpen())
 			self::$defaultSendTimeout = $timeout;
 		else
-			throw new SocketTransportException('Could not change send timeout when connected');
+			throw new SmppTransportException('Could not change send timeout when connected');
 	}
 	
 	/**
 	 * Sets the receive timeout.
-	 * Throws SocketTransportException is value could not be changed
-	 * @throws SocketTransportException
+	 * Throws SmppTransportException is value could not be changed
+	 * @throws SmppTransportException
 	 */
 	public function setRecvTimeout (int $timeout): void
 	{
 		if (!$this->isOpen())
 			self::$defaultRecvTimeout = $timeout;
 		else
-			throw new SocketTransportException('Could not change recv timeout when connected');
+			throw new SmppTransportException('Could not change recv timeout when connected');
 	}
 	
 	/**
 	 * Check if the stream is constructed, and there are no exceptions on it
 	 * Returns false if it's closed.
-	 * Throws SocketTransportException is state could not be ascertained
-	 * @throws SocketTransportException
+	 * Throws SmppTransportException is state could not be ascertained
+	 * @throws SmppTransportException
 	 */
 	public function isOpen (): bool
 	{
@@ -204,7 +204,7 @@ class Stream
 		$res = stream_select($r, $w, $e, 0);
 		
 		if ($res === false)
-			throw new SocketTransportException('Could not examine stream');
+			throw new SmppTransportException('Could not examine stream');
 		
 		// if there is an exception on our stream it's probably dead
 		if (!empty($e))
@@ -233,9 +233,9 @@ class Stream
 	/**
 	 * Open the stream, trying to connect to each host in succession.
 	 * This will prefer IPv6 connections if forceIpv4 is not enabled.
-	 * If all hosts fail, a SocketTransportException is thrown.
+	 * If all hosts fail, a SmppTransportException is thrown.
 	 *
-	 * @throws SocketTransportException
+	 * @throws SmppTransportException
 	 */
 	public function open (): void
 	{
@@ -296,7 +296,7 @@ class Stream
 			
 			$it->next();
 		}
-		throw new SocketTransportException('Could not connect to any of the specified hosts');
+		throw new SmppTransportException('Could not connect to any of the specified hosts');
 	}
 	
 	/**
@@ -317,7 +317,7 @@ class Stream
 	
 	/**
 	 * Check if there is data waiting for us on the wire
-	 * @throws SocketTransportException
+	 * @throws SmppTransportException
 	 */
 	public function hasData (): bool
 	{
@@ -326,7 +326,7 @@ class Stream
 		$e = null;
 		$res = stream_select($r, $w, $e, 0);
 		if ($res === false)
-			throw new SocketTransportException('Could not examine stream');
+			throw new SmppTransportException('Could not examine stream');
 		
 		if (!empty($r))
 			return true;
@@ -339,16 +339,16 @@ class Stream
 	 * Does not guarantee that all the bytes are read.
 	 * Returns false on EOF
 	 * Returns false on timeout (technically EAGAIN error).
-	 * Throws SocketTransportException if data could not be read.
+	 * Throws SmppTransportException if data could not be read.
 	 *
-	 * @throws SocketTransportException
+	 * @throws SmppTransportException
 	 */
 	public function read (int $length): mixed
 	{
 		$d = stream_get_contents($this->stream, $length);
 		
 		if ($d === false)
-			throw new SocketTransportException('Could not read ' . $length . ' bytes from stream');
+			throw new SmppTransportException('Could not read ' . $length . ' bytes from stream');
 		
 		if ($d === '')
 			return false;
@@ -358,9 +358,9 @@ class Stream
 	
 	/**
 	 * Read all the bytes, and block until they are read.
-	 * Timeout throws SocketTransportException
+	 * Timeout throws SmppTransportException
 	 *
-	 * @throws SocketTransportException
+	 * @throws SmppTransportException
 	 */
 	public function readAll (int $length): string
 	{
@@ -373,7 +373,7 @@ class Stream
 		{
 			$buf = stream_get_contents($this->stream, $length - $r);
 			if ($buf === false)
-				throw new SocketTransportException('Could not read ' . $length . ' bytes from stream');
+				throw new SmppTransportException('Could not read ' . $length . ' bytes from stream');
 			
 			$d .= $buf;
 			if (strlen($d) === $length)
@@ -387,21 +387,21 @@ class Stream
 			
 			// check
 			if ($res === false)
-				throw new SocketTransportException('Could not examine stream');
+				throw new SmppTransportException('Could not examine stream');
 			
 			if (!empty($e))
-				throw new SocketTransportException('Stream socket exception while waiting for data');
+				throw new SmppTransportException('Stream socket exception while waiting for data');
 			
 			if (empty($r))
-				throw new SocketTransportException('Timed out waiting for data on stream');
+				throw new SmppTransportException('Timed out waiting for data on stream');
 		}
 	}
 	
 	/**
 	 * Write (all) data to the stream.
-	 * Timeout throws SocketTransportException
+	 * Timeout throws SmppTransportException
 	 *
-	 * @throws SocketTransportException
+	 * @throws SmppTransportException
 	 */
 	public function write (string $buffer, int $length): void
 	{
@@ -413,7 +413,7 @@ class Stream
 		{
 			$wrote = fwrite($this->stream, $buffer, $r);
 			if ($wrote === false)
-				throw new SocketTransportException('Could not write ' . $length . ' bytes to stream');
+				throw new SmppTransportException('Could not write ' . $length . ' bytes to stream');
 			
 			$r -= $wrote;
 			if ($r === 0)
@@ -429,13 +429,13 @@ class Stream
 			
 			// check
 			if ($res === false)
-				throw new SocketTransportException('Could not examine stream');
+				throw new SmppTransportException('Could not examine stream');
 			
 			if (!empty($e))
-				throw new SocketTransportException('Stream socket exception while waiting to write data');
+				throw new SmppTransportException('Stream socket exception while waiting to write data');
 			
 			if (empty($w))
-				throw new SocketTransportException('Timed out waiting to write data on stream');
+				throw new SmppTransportException('Timed out waiting to write data on stream');
 		}
 	}
 }

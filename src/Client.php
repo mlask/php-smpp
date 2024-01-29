@@ -3,8 +3,7 @@ namespace smpp;
 
 use Exception;
 use smpp\exceptions\SmppException;
-use smpp\exceptions\SocketTransportException;
-use smpp\transport\Socket;
+use smpp\exceptions\SmppTransportException;
 use smpp\transport\Stream;
 
 /**
@@ -109,7 +108,7 @@ class Client
 	 * @param Socket|Stream $transport
 	 * @param callable $debugHandler
 	 */
-	public function __construct (Socket|Stream $transport, ?callable $debugHandler = null)
+	public function __construct (Stream $transport, ?callable $debugHandler = null)
 	{
 		// Internal parameters
 		$this->sequenceNumber = 1;
@@ -125,12 +124,12 @@ class Client
 	 * Binds the receiver. One object can be bound only as receiver or only as transmitter.
 	 * @param string $login - ESME system_id
 	 * @param string $pass - ESME password
-	 * @throws SocketTransportException
+	 * @throws SmppTransportException
 	 */
 	public function bindReceiver (string $login, string $pass): void
 	{
 		if (!$this->transport->isOpen())
-			throw new SocketTransportException('Socket is not open');
+			throw new SmppTransportException('Socket is not open');
 		
 		$this->debugLog('Binding receiver...');
 		
@@ -147,12 +146,12 @@ class Client
 	 * Binds the transmitter. One object can be bound only as receiver or only as transmitter.
 	 * @param string $login - ESME system_id
 	 * @param string $pass - ESME password
-	 * @throws SocketTransportException
+	 * @throws SmppTransportException
 	 */
 	public function bindTransmitter (string $login, string $pass): void
 	{
 		if (!$this->transport->isOpen())
-			throw new SocketTransportException('Socket is not open');
+			throw new SmppTransportException('Socket is not open');
 		
 		$this->debugLog('Binding transmitter...');
 		
@@ -169,12 +168,12 @@ class Client
 	 * Binds the transceiver (transmitter & receiver).
 	 * @param string $login - ESME system_id
 	 * @param string $pass - ESME password
-	 * @throws SocketTransportException
+	 * @throws SmppTransportException
 	 */
 	public function bindTransceiver (string $login, string $pass): void
 	{
 		if (!$this->transport->isOpen())
-			throw new SocketTransportException('Socket is not open');
+			throw new SmppTransportException('Socket is not open');
 		
 		$this->debugLog('Binding transceiver...');
 		
@@ -742,7 +741,7 @@ class Client
 	protected function sendCommand (int $id, string $pduBody): mixed
 	{
 		if (!$this->transport->isOpen())
-			throw new SocketTransportException('Socket is not open');
+			throw new SmppTransportException('Socket is not open');
 		
 		$pdu = new Pdu($id, 0, $this->sequenceNumber, $pduBody);
 		$this->sendPDU($pdu);
