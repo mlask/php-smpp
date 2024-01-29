@@ -6,7 +6,7 @@ use smpp\exceptions\SocketTransportException;
 /**
  * TCP Stream Socket Transport for use with multiple protocols.
  * Supports connection pools and IPv6 in addition to providing a few public methods to make life easier.
- * It's primary purpose is long-running connections, since it don't support socket re-use, ip-blacklisting, etc.
+ * It's primary purpose is long-running connections, since it don't support stream re-use, ip-blacklisting, etc.
  * It assumes a blocking/synchronous architecture, and will block when reading or writing, but will enforce timeouts.
  *
  * Copyright (C) 2024 Marcin Laber
@@ -19,20 +19,20 @@ class Stream
 	protected $persist;
 	protected $debugHandler;
 	public $debug;
-
+	
 	protected static $useTls = false;
 	protected static $defaultSendTimeout = 100;
 	protected static $defaultRecvTimeout = 750;
 	public static $defaultDebug = false;
-
+	
 	public static $forceIpv6 = false;
 	public static $forceIpv4 = false;
 	public static $randomHost = false;
-
+	
 	/**
 	 * Construct a new stream for this transport to use.
 	 */
-	public function __construct(array $hosts, mixed $ports, bool $persist = false, mixed $debugHandler = null)
+	public function __construct (array $hosts, mixed $ports, bool $persist = false, mixed $debugHandler = null)
 	{
 		$this->debug = self::$defaultDebug;
 		$this->debugHandler = $debugHandler ? $debugHandler : 'error_log';
@@ -49,14 +49,14 @@ class Stream
 		
 		$this->persist = $persist;
 	}
-
+	
 	/**
 	 * Resolve the hostnames into IPs, and sort them into IPv4 or IPv6 groups.
 	 * If using DNS hostnames, and all lookups fail, a InvalidArgumentException is thrown.
 	 *
 	 * @throws \InvalidArgumentException
 	 */
-	protected function resolveHosts (array $hosts)
+	protected function resolveHosts (array $hosts): void
 	{
 		$i = 0;
 		foreach ($hosts as $host)
@@ -93,7 +93,7 @@ class Stream
 					}
 					
 					if ($this->debug)
-						call_user_func($this->debugHandler, "IPv6 addresses for $hostname: " . implode(', ', $ip6s));
+						call_user_func($this->debugHandler, 'IPv6 addresses for ' . $hostname . ': ' . implode(', ', $ip6s));
 				}
 				if (!self::$forceIpv6)
 				{
@@ -115,7 +115,7 @@ class Stream
 						$ip4s[] = $ip;
 					
 					if ($this->debug)
-						call_user_func($this->debugHandler, "IPv4 addresses for $hostname: " . implode(', ', $ip4s));
+						call_user_func($this->debugHandler, 'IPv4 addresses for ' . $hostname . ': ' . implode(', ', $ip4s));
 				}
 			}
 			
@@ -138,12 +138,12 @@ class Stream
 		if (empty($this->hosts))
 			throw new \InvalidArgumentException('No valid hosts was found');
 	}
-
+	
 	/**
 	 * Get a reference to the stream.
 	 * You should use the public functions rather than the stream directly
 	 */
-	public function getStream ()
+	public function getStream (): mixed
 	{
 		return $this->stream;
 	}
@@ -153,40 +153,40 @@ class Stream
 	 * Throws SocketTransportException is value could not be changed
 	 * @throws SocketTransportException
 	 */
-	public function useTls (bool $tls)
+	public function useTls (bool $tls): void
 	{
 		if (!$this->isOpen())
 			self::$useTls = $tls;
 		else
 			throw new SocketTransportException('Could not toggle TLS when connected');
 	}
-
+	
 	/**
 	 * Sets the send timeout.
 	 * Throws SocketTransportException is value could not be changed
 	 * @throws SocketTransportException
 	 */
-	public function setSendTimeout (int $timeout)
+	public function setSendTimeout (int $timeout): void
 	{
 		if (!$this->isOpen())
 			self::$defaultSendTimeout = $timeout;
 		else
 			throw new SocketTransportException('Could not change send timeout when connected');
 	}
-
+	
 	/**
 	 * Sets the receive timeout.
 	 * Throws SocketTransportException is value could not be changed
 	 * @throws SocketTransportException
 	 */
-	public function setRecvTimeout (int $timeout)
+	public function setRecvTimeout (int $timeout): void
 	{
 		if (!$this->isOpen())
 			self::$defaultRecvTimeout = $timeout;
 		else
 			throw new SocketTransportException('Could not change recv timeout when connected');
 	}
-
+	
 	/**
 	 * Check if the stream is constructed, and there are no exceptions on it
 	 * Returns false if it's closed.
@@ -212,7 +212,7 @@ class Stream
 		
 		return true;
 	}
-
+	
 	/**
 	 * Convert a milliseconds into a seconds
 	 */
@@ -229,7 +229,7 @@ class Stream
 		$usec = $milliseconds * 1000;
 		return ['sec' => (int)floor($usec / 1000000), 'usec' => $usec % 1000000];
 	}
-
+	
 	/**
 	 * Open the stream, trying to connect to each host in succession.
 	 * This will prefer IPv6 connections if forceIpv4 is not enabled.
@@ -237,7 +237,7 @@ class Stream
 	 *
 	 * @throws SocketTransportException
 	 */
-	public function open ()
+	public function open (): void
 	{
 		$context = stream_context_create([
 			'ssl' => [
@@ -298,11 +298,11 @@ class Stream
 		}
 		throw new SocketTransportException('Could not connect to any of the specified hosts');
 	}
-
+	
 	/**
-	 * Do a clean shutdown of the socket.
+	 * Do a clean shutdown of the stream.
 	 */
-	public function close ()
+	public function close (): void
 	{
 		stream_set_blocking($this->stream, true);
 		
@@ -314,10 +314,9 @@ class Stream
 		stream_socket_shutdown($this->stream, \STREAM_SHUT_RDWR);
 		fclose($this->stream);
 	}
-
+	
 	/**
 	 * Check if there is data waiting for us on the wire
-	 * @return boolean
 	 * @throws SocketTransportException
 	 */
 	public function hasData (): bool
@@ -327,16 +326,16 @@ class Stream
 		$e = null;
 		$res = stream_select($r, $w, $e, 0);
 		if ($res === false)
-			throw new SocketTransportException('Could not examine socket');
+			throw new SocketTransportException('Could not examine stream');
 		
 		if (!empty($r))
 			return true;
 		
 		return false;
 	}
-
+	
 	/**
-	 * Read up to $length bytes from the socket.
+	 * Read up to $length bytes from the stream.
 	 * Does not guarantee that all the bytes are read.
 	 * Returns false on EOF
 	 * Returns false on timeout (technically EAGAIN error).
@@ -356,7 +355,7 @@ class Stream
 		
 		return $d;
 	}
-
+	
 	/**
 	 * Read all the bytes, and block until they are read.
 	 * Timeout throws SocketTransportException
@@ -391,20 +390,20 @@ class Stream
 				throw new SocketTransportException('Could not examine stream');
 			
 			if (!empty($e))
-				throw new SocketTransportException('Stream exception while waiting for data');
+				throw new SocketTransportException('Stream socket exception while waiting for data');
 			
 			if (empty($r))
-				throw new SocketTransportException('Timed out waiting for data on socket');
+				throw new SocketTransportException('Timed out waiting for data on stream');
 		}
 	}
-
+	
 	/**
-	 * Write (all) data to the socket.
+	 * Write (all) data to the stream.
 	 * Timeout throws SocketTransportException
 	 *
 	 * @throws SocketTransportException
 	 */
-	public function write (string $buffer, int $length)
+	public function write (string $buffer, int $length): void
 	{
 		$r = $length;
 		$writeTimeout = $this->millisecToArray(self::$defaultSendTimeout);
@@ -414,7 +413,7 @@ class Stream
 		{
 			$wrote = fwrite($this->stream, $buffer, $r);
 			if ($wrote === false)
-				throw new SocketTransportException('Could not write ' . $length . ' bytes to stream;');
+				throw new SocketTransportException('Could not write ' . $length . ' bytes to stream');
 			
 			$r -= $wrote;
 			if ($r === 0)
@@ -433,10 +432,10 @@ class Stream
 				throw new SocketTransportException('Could not examine stream');
 			
 			if (!empty($e))
-				throw new SocketTransportException('Socket exception while waiting to write data');
+				throw new SocketTransportException('Stream socket exception while waiting to write data');
 			
 			if (empty($w))
-				throw new SocketTransportException('Timed out waiting to write data on socket');
+				throw new SocketTransportException('Timed out waiting to write data on stream');
 		}
 	}
 }

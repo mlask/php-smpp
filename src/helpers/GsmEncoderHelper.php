@@ -22,7 +22,7 @@ class GsmEncoderHelper
 	 * @param string $string
 	 * @return string
 	 */
-	public static function utf8_to_gsm0338($string)
+	public static function utf8_to_gsm0338 (string $string): string
 	{
 		$dict = [
 			'@' => "\x00",
@@ -170,7 +170,7 @@ class GsmEncoderHelper
 			'✊' => "\x27\x0a",
 		];
 		// $converted = strtr($string, $dict);
-
+		
 		// Replace unconverted UTF-8 chars from codepages U+0080-U+07FF, U+0080-U+FFFF and U+010000-U+10FFFF with a single ?
 		// return preg_replace('/([\\xC0-\\xDF].)|([\\xE0-\\xEF]..)|([\\xF0-\\xFF]...)/m','?',$converted);
 		return strtr($string, $dict);
@@ -183,7 +183,7 @@ class GsmEncoderHelper
 	 * @param string $utf8String
 	 * @return integer
 	 */
-	public static function countGsm0338Length($utf8String)
+	public static function countGsm0338Length (string $utf8String): int
 	{
 		$len = mb_strlen($utf8String, 'utf-8');
 		$len += (int)preg_match_all('/[\\^{}\\\~€|\\[\\]]/mu', $utf8String, $m);
@@ -197,31 +197,38 @@ class GsmEncoderHelper
 	 * @param string $data
 	 * @return string
 	 */
-	public static function pack7bit($data)
+	public static function pack7bit (string $data): string
 	{
 		$l = strlen($data);
 		$currentByte = 0;
 		$offset = 0;
 		$packed = '';
-		for ($i = 0; $i < $l; $i++) {
+		for ($i = 0; $i < $l; $i ++)
+		{
 			// cap off any excess bytes
 			$septet = ord($data[$i]) & 0x7f;
+			
 			// append the septet and then cap off excess bytes
 			$currentByte |= ($septet << $offset) & 0xff;
+			
 			// update offset
 			$offset += 7;
-
-			if ($offset > 7) {
+			
+			if ($offset > 7)
+			{
 				// the current byte is full, add it to the encoded data.
 				$packed .= chr($currentByte);
+				
 				// shift left and append the left shifted septet to the current byte
 				$currentByte = $septet = $septet >> (15 - $offset); // same as (7 - ($offset - 8))
+				
 				// update offset
 				$offset -= 8; // 7 - (7 - ($offset - 8))
 			}
 		}
-		if ($currentByte > 0) $packed .= chr($currentByte); // append the last byte
-
+		if ($currentByte > 0)
+			$packed .= chr($currentByte); // append the last byte
+		
 		return $packed;
 	}
 }
