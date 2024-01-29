@@ -305,6 +305,12 @@ class Stream
 	public function close ()
 	{
 		stream_set_blocking($this->stream, true);
+		
+		$r = null;
+		$w = [$this->stream];
+		$e = null;
+		stream_select($r, $w, $e, 1);
+		
 		stream_socket_shutdown($this->stream, \STREAM_SHUT_RDWR);
 		fclose($this->stream);
 	}
@@ -362,6 +368,7 @@ class Stream
 		$d = '';
 		$r = 0;
 		$readTimeout = $this->millisecToArray(self::$defaultRecvTimeout);
+		stream_set_timeout($this->stream, $readTimeout['sec'], $readTimeout['usec']);
 		
 		while ($r < $length)
 		{
@@ -401,6 +408,7 @@ class Stream
 	{
 		$r = $length;
 		$writeTimeout = $this->millisecToArray(self::$defaultSendTimeout);
+		stream_set_timeout($this->stream, $writeTimeout['sec'], $writeTimeout['usec']);
 		
 		while ($r > 0)
 		{
