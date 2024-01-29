@@ -1,6 +1,4 @@
 <?php
-
-
 namespace smpp\transport;
 
 use smpp\exceptions\SocketTransportException;
@@ -276,6 +274,13 @@ class Socket
 	 */
 	public function open()
 	{
+		$context = stream_context_create([
+			'ssl' => [
+				'verify_peer' => false,
+				'verify_peer_name' => false,
+			],
+		]);
+		
 		if (!self::$forceIpv4) {
 			$socket6 = @socket_create(AF_INET6, SOCK_STREAM, SOL_TCP);
 			if ($socket6 == false) {
@@ -329,14 +334,21 @@ class Socket
 			if (!self::$forceIpv6 && !empty($ip4s)) {
 				foreach ($ip4s as $ip) {
 					if ($this->debug) call_user_func($this->debugHandler, "Connecting to $ip:$port...");
-					$r = @socket_connect($socket4, $ip, $port);
-					if ($r) {
-						if ($this->debug) call_user_func($this->debugHandler, "Connected to $ip:$port!");
-						@socket_close($socket6);
-						$this->socket = $socket4;
-						return;
+					//$r = @socket_connect($socket4, $ip, $port);
+					$s = stream_socket_client('tls://' . $ip . ':' . $port, $err_code, $err_msg, self::$defaultRecvTimeout, \STREAM_CLIENT_CONNECT, $context);
+					if ($s) {
+						if ($this->debug) call_user_func($this->debugHandler, "Stream socket connected to $ip:$port!");
+						$r = socket_import_stream($s);
+						if ($r) {
+							if ($this->debug) call_user_func($this->debugHandler, "Connected to $ip:$port!");
+							@socket_close($socket6);
+							$this->socket = $socket4;
+							return;
+						} elseif ($this->debug) {
+							call_user_func($this->debugHandler, "Socket connect to $ip:$port failed; " . socket_strerror(socket_last_error()));
+						}
 					} elseif ($this->debug) {
-						call_user_func($this->debugHandler, "Socket connect to $ip:$port failed; " . socket_strerror(socket_last_error()));
+						call_user_func($this->debugHandler, "Stream socket connect to $ip:$port failed; " . socket_strerror(socket_last_error()));
 					}
 				}
 			}
