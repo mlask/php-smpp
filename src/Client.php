@@ -108,7 +108,7 @@ class Client
 	 * @param Socket $transport
 	 * @param string $debugHandler
 	 */
-	public function __construct(Socket $transport, $debugHandler = null)
+	public function __construct(Socket|Stream $transport, $debugHandler = null)
 	{
 		// Internal parameters
 		$this->sequenceNumber = 1;
