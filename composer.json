@@ -1,6 +1,6 @@
 {
   "name": "mlask/php-smpp",
-  "description": "PHP SMPP client lib with TLS support, fork of alexandr-mironov/php-smpp",
+  "description": "PHP SMPP client lib with TLS support",
   "keywords": ["smpp", "sms", "texting", "gsm"],
   "homepage": "https://github.com/mlask/php-smpp",
   "type": "library",

@@ -738,7 +738,7 @@ class Client
 	 * @return bool|Pdu
 	 * @throws Exception
 	 */
-	protected function sendCommand (int $id, string $pduBody): mixed
+	protected function sendCommand (int $id, ?string $pduBody): mixed
 	{
 		if (!$this->transport->isOpen())
 			throw new SmppTransportException('Socket is not open');
