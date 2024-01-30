@@ -15,7 +15,7 @@ class Pdu
 	/**
 	 * Create new generic PDU object
 	 */
-	public function __construct (int $id, int $status, int $sequence, string $body)
+	public function __construct (int $id, int $status, int $sequence, ?string $body)
 	{
 		$this->id = $id;
 		$this->status = $status;
