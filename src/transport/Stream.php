@@ -345,6 +345,9 @@ class Stream
 	 */
 	public function read (int $length): mixed
 	{
+		if (!is_resource($this->stream) || feof($this->stream))
+			throw new SmppTransportException('Stream connection error');
+		
 		$d = stream_get_contents($this->stream, $length);
 		
 		if ($d === false)
@@ -405,13 +408,16 @@ class Stream
 	 */
 	public function write (string $buffer, int $length): void
 	{
+		if (!is_resource($this->stream) || feof($this->stream))
+			throw new SmppTransportException('Stream connection error');
+		
 		$r = $length;
 		$writeTimeout = $this->millisecToArray(self::$defaultSendTimeout);
 		stream_set_timeout($this->stream, $writeTimeout['sec'], $writeTimeout['usec']);
 		
 		while ($r > 0)
 		{
-			$wrote = fwrite($this->stream, $buffer, $r);
+			$wrote = @fwrite($this->stream, $buffer, $r);
 			if ($wrote === false)
 				throw new SmppTransportException('Could not write ' . $length . ' bytes to stream');
 			
