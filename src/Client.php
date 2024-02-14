@@ -572,7 +572,7 @@ class Client
 		$pduBody = pack('a' . (strlen($login) + 1) . 'a' . (strlen($pass) + 1) . 'a' . (strlen(self::$systemType) + 1) . 'CCCa' . (strlen(self::$addressRange) + 1), $login, $pass, self::$systemType, self::$interfaceVersion, self::$addrTon, self::$addrNPI, self::$addressRange);
 		
 		$response = $this->sendCommand($commandID, $pduBody);
-		if ($response->status != SMPP::ESME_ROK)
+		if ($response->status !== SMPP::ESME_ROK)
 			throw new SmppException(SMPP::getStatusMessage($response->status), $response->status);
 		
 		return $response;
@@ -586,7 +586,7 @@ class Client
 	protected function parseSMS (Pdu $pdu): mixed
 	{
 		// Check command id
-		if ($pdu->id != SMPP::DELIVER_SM)
+		if ($pdu->id !== SMPP::DELIVER_SM)
 			throw new \InvalidArgumentException('PDU is not an received SMS');
 		
 		// Unpack PDU
@@ -644,7 +644,7 @@ class Client
 			$sms = new Sms($pdu->id, $pdu->status, $pdu->sequence, $pdu->body, $serviceType, $source, $destination, $esmClass, $protocolId, $priorityFlag, $registeredDelivery, $dataCoding, $message, $tags);
 		}
 		
-		$this->debugLog('Received sms: %s', json_encode($sms));
+		$this->debugLog('Received SMS: %s', json_encode($sms));
 		
 		// Send response of recieving sms
 		$response = new Pdu(SMPP::DELIVER_SM_RESP, SMPP::ESME_ROK, $pdu->sequence, "\x00");

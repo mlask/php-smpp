@@ -14,9 +14,6 @@ class Address
 	/**
 	 * Construct a new object of class Address
 	 *
-	 * @param string $value
-	 * @param integer $ton
-	 * @param integer $npi
 	 * @throws \InvalidArgumentException
 	 */
 	public function __construct (string $value, int $ton = SMPP::TON_UNKNOWN, int $npi = SMPP::NPI_UNKNOWN)
