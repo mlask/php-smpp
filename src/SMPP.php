@@ -148,6 +148,7 @@ class SMPP
 	const DATA_CODING_ISO2022_JP = 10; // Music codes
 	const DATA_CODING_KANJI = 13; // Extended Kanji JIS
 	const DATA_CODING_KSC5601 = 14;
+	const DATA_CODING_NONE = 255; // internal use only!
 	
 	// SMPP v3.4 - 5.2.25 page 129
 	const DEST_FLAG_SME = 1;

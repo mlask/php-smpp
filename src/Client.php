@@ -5,6 +5,7 @@ use Exception;
 use smpp\exceptions\SmppException;
 use smpp\exceptions\SmppTransportException;
 use smpp\transport\Stream;
+use smpp\helpers\GsmEncoderHelper;
 
 /**
  * Class for receiving or sending sms through SMPP protocol.
@@ -593,18 +594,18 @@ class Client
 		$ar = unpack('C*', $pdu->body);
 		
 		// Read mandatory params
-		$serviceType = $this->getString($ar, 6, true);
+		$serviceType = $this->getString(ar: $ar, maxLength: 6, firstRead: true);
 		
-		//
+		// (source)
 		$sourceAddrTon = next($ar);
 		$sourceAddrNPI = next($ar);
-		$sourceAddr = $this->getString($ar, 21);
+		$sourceAddr = $this->getString(ar: $ar, maxLength: 21);
 		$source = new Address($sourceAddr, $sourceAddrTon, $sourceAddrNPI);
 		
-		//
+		// (destination)
 		$destinationAddrTon = next($ar);
 		$destinationAddrNPI = next($ar);
-		$destinationAddr = $this->getString($ar, 21);
+		$destinationAddr = $this->getString(ar: $ar, maxLength: 21);
 		$destination = new Address($destinationAddr, $destinationAddrTon, $destinationAddrNPI);
 		
 		$esmClass = next($ar);
@@ -617,7 +618,17 @@ class Client
 		$dataCoding = next($ar);
 		next($ar); // sm_default_msg_id
 		$sm_length = next($ar);
-		$message = $this->getString($ar, $sm_length);
+		$udhi_length = 0;
+		
+		// (udhi)
+		if (($esmClass & SMPP::ESM_UHDI) !== 0) // message with UDHI
+		{
+			$udhi_length = next($ar);
+			$udhi = $this->parseUDHI($this->getString(ar: $ar, maxLength: $udhi_length, nullTerminated: false, dataCoding: SMPP::DATA_CODING_NONE));
+		}
+		
+		// (message text)
+		$message = $this->getString(ar: $ar, maxLength: $sm_length - $udhi_length, dataCoding: $dataCoding, nullTerminated: false);
 		
 		// Check for optional params, and parse them
 		if (current($ar) !== false)
@@ -644,7 +655,13 @@ class Client
 			$sms = new Sms($pdu->id, $pdu->status, $pdu->sequence, $pdu->body, $serviceType, $source, $destination, $esmClass, $protocolId, $priorityFlag, $registeredDelivery, $dataCoding, $message, $tags);
 		}
 		
-		$this->debugLog('Received SMS: %s', json_encode($sms));
+		$this->debugLog('Received SMS:');
+		$this->debugLog('  %s', json_encode($sms, JSON_INVALID_UTF8_IGNORE));
+		if (isset($udhi))
+		{
+			$this->debugLog('Received UDHI:');
+			$this->debugLog('  %s', json_encode($udhi, JSON_INVALID_UTF8_IGNORE));
+		}
 		
 		// Send response of recieving sms
 		$response = new Pdu(SMPP::DELIVER_SM_RESP, SMPP::ESME_ROK, $pdu->sequence, "\x00");
@@ -700,7 +717,7 @@ class Client
 	 * This is mostly to deal with the situation were we run out of sequence numbers
 	 * @throws Exception
 	 */
-	protected function reconnect (): void
+	public function reconnect (): void
 	{
 		$this->close();
 		sleep(self::RECONNECT_DELAY);
@@ -874,28 +891,64 @@ class Client
 	}
 	
 	/**
-	 * Reads C style null padded string from the char array.
-	 * Reads until $maxlen or null byte.
+	 * Reads string from the char array.
+	 * Reads until $maxlen or null byte (default; if $nullTerminated).
 	 *
 	 * @param array $ar - input array
 	 * @param integer $maxLength - maximum length to read.
 	 * @param boolean $firstRead - is this the first bytes read from array?
-	 * @return string.
+	 * @param boolean $nullTerminated - C style NULL terminated string?
+	 * @param int $dataCoding - data coding scheme (optional)
+	 * @return string
 	 */
-	protected function getString (array & $ar, int $maxLength = 255, bool $firstRead = false): string
+	protected function getString (array & $ar, int $maxLength = 255, bool $firstRead = false, bool $nullTerminated = true, int $dataCoding = SMPP::DATA_CODING_DEFAULT): string
 	{
 		$s = '';
 		$i = 0;
+		$b = false;
+		
 		do
 		{
 			$c = ($firstRead && $i === 0) ? current($ar) : next($ar);
-			if ($c !== 0)
-				$s .= chr($c);
 			$i ++;
+			
+			$b = match ($dataCoding)
+			{
+				SMPP::DATA_CODING_UCS2 => ($i % 2) === 0 && $c === 0,
+				default => $c === 0,
+			};
+			
+			if (!$nullTerminated || !$b)
+				$s .= chr($c);
 		}
-		while ($i < $maxLength && $c !== 0);
+		while ($i < $maxLength && (!$nullTerminated || !$b));
 		
-		return $s;
+		switch ($dataCoding)
+		{
+			case SMPP::DATA_CODING_UCS2: return mb_convert_encoding($s, 'UTF-8', 'UCS-2');
+			case SMPP::DATA_CODING_DEFAULT: return GsmEncoderHelper::gsm0338_to_utf8($s);
+			default: return $s;
+		}
+	}
+	
+	/**
+	 * Parses UDHI from input string
+	 *
+	 * @param string $udhi - UDHI binary data
+	 * @return array
+	 */
+	protected function parseUDHI (string $udhi): array
+	{
+		$udhi = unpack('Ciei/Cie_length/a*data', $udhi);
+		
+		switch ($udhi['iei'])
+		{
+			case 0x00: // Concatenated short messages, 8-bit reference number
+				$udhi['data'] = unpack('Cmsg_id/Cmsg_count/Cseq', $udhi['data']);
+				break;
+		}
+		
+		return $udhi;
 	}
 	
 	/**
